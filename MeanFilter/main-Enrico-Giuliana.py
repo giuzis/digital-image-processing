@@ -24,12 +24,12 @@ limits = lambda shape,alt,lar: (left(alt), shape[0] - right(alt),left(lar), shap
 def filtroDaMediaIngenuo (img, altura_janela, largura_janela):
     rows,cols,channels = img.shape
     img_out = img.copy()
-    L, R, T, B = limits(img.shape, altura_janela, largura_janela)
+    T, B, L, R = limits(img.shape, altura_janela, largura_janela)
     
-    for i in range(L, R):
-        for j in range(T, B):
+    for i in range(T, B):
+        for j in range(L, R):
             soma = np.zeros(3)
-            for k in range(i-L, i+right(altura_janela)+1):
+            for k in range(i-T, i+right(altura_janela)+1):
                 for l in range(j-left(largura_janela), j+right(largura_janela)+1):
                     soma += img[k,l]
             img_out[i,j] = soma/(largura_janela*altura_janela)
@@ -47,11 +47,11 @@ def complete_lines (line_size, img) :
     return cv2.transpose(buffer)
 
 def filtroDaMediaSeparavel(img, altura_janela, largura_janela):
+    T, B, L, R = limits(img.shape, altura_janela, largura_janela)
     buffer = complete_lines (largura_janela,img)
-    buffer = complete_lines (altura_janela, buffer)
     img_out = img.copy()
-    L, R, T, B = limits(img.shape, altura_janela, largura_janela)
-    img_out[L:R, T:B] = buffer[L:R, T:B] 
+    img_out[T:B,L:T]= complete_lines (altura_janela, buffer)[T:B,L:T]
+         
     return img_out
 
 
@@ -59,27 +59,22 @@ def filtroDaMediaSeparavel(img, altura_janela, largura_janela):
 def filtroDaMediaSeparavel2(img, altura_janela, largura_janela):
     rows,cols,channels = img.shape
     buffer = np.zeros((img.shape), dtype = np.float64)
-    print(rows, cols)
     for i in range(rows):
-        acm = np.zeros(3)
-        for j in range(largura_janela-1):
-            acm += img[i,j]
-        for j in range(left(largura_janela), cols-right(largura_janela)):
-            acm += img[i,j+right(largura_janela)]
-            buffer[i,j] = acm / largura_janela
-            acm -= img[i,j-left(largura_janela)]  
+        for j in range(largura_janela):
+            buffer[i,left(largura_janela)] += (img[i,j]/largura_janela)
+        for j in range(left(largura_janela)+1, cols-right(largura_janela)):
+            buffer[i,j] = buffer[i,j-1] + (img[i,j+right(largura_janela)] - img[i,j-left(largura_janela)-1])/largura_janela
     
     img_out = img.copy()
-
-    for j in range(left(largura_janela), cols-right(largura_janela)):
-        acm = np.zeros(3) 
-        for i in range(altura_janela-1):
-            acm += buffer[i,j]
-        for i in range(left(altura_janela), R):
-            acm += buffer[i+right(altura_janela),j]
-            img_out[i,j] = acm / altura_janela
-            acm -= buffer[i-left(altura_janela),j] 
+    T, B, L, R = limits(img.shape, altura_janela, largura_janela)
+    img_out[T:B,L:R] = (0,0,0)
     
+    for j in range(L,R):
+        for i in range(altura_janela):
+            img_out[left(altura_janela),j] += (buffer[i,j]/altura_janela)
+        for i in range(left(altura_janela)+1, rows-right(altura_janela)):
+            img_out[i,j] = img_out[i-1,j] + (buffer[i+right(altura_janela),j] - buffer[i-left(altura_janela)-1,j])/altura_janela
+
     return img_out
             
 
@@ -92,14 +87,23 @@ def main ():
 
     img = img.astype (np.float32) / 255
 
+    start_time = timeit.default_timer ()
     img_ingenuo = filtroDaMediaIngenuo (img, ALTURA_JANELA, LARGURA_JANELA)
+    print ('Tempo - Filtro Media Ingenuo: %f' % (timeit.default_timer () - start_time))
+    start_time = timeit.default_timer ()
     img_separavel = filtroDaMediaSeparavel (img, ALTURA_JANELA, LARGURA_JANELA)
+    print ('Tempo - Filtro Media Separavel 1: %f' % (timeit.default_timer () - start_time))
+    start_time = timeit.default_timer ()
+    img_separavel_2 = filtroDaMediaSeparavel2 (img, ALTURA_JANELA, LARGURA_JANELA)
+    print ('Tempo - Filtro Media Separavel 2: %f' % (timeit.default_timer () - start_time))
     
     cv2.imshow ('a - entrada', img)
     cv2.imshow ('a - ingenuo', img_ingenuo)
     cv2.imshow ('a - separavel', img_separavel)
+    cv2.imshow ('a - separavel_2', img_separavel_2)
     cv2.imwrite ('a - ingenuo.png', img_ingenuo*255)
     cv2.imwrite ('a - separavel.png', img_separavel*255)
+    cv2.imwrite ('a - separavel_2.png', img_separavel_2*255)
 
     cv2.waitKey ()
     cv2.destroyAllWindows ()
