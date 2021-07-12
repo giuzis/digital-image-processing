@@ -15,7 +15,7 @@ import cv2
 
 INPUT_IMAGE =  'a.bmp'
 LARGURA_JANELA = 3
-ALTURA_JANELA = 13
+ALTURA_JANELA = 3
 
 left = lambda n: int((n - 1)/2)
 right = lambda n: int((n)/2)
@@ -50,7 +50,7 @@ def filtroDaMediaSeparavel(img, altura_janela, largura_janela):
     T, B, L, R = limits(img.shape, altura_janela, largura_janela)
     buffer = complete_lines (largura_janela,img)
     img_out = img.copy()
-    img_out[T:B,L:T]= complete_lines (altura_janela, buffer)[T:B,L:T]
+    img_out[T:B,L:R]= complete_lines (altura_janela, buffer)[T:B,L:R]
          
     return img_out
 
@@ -76,7 +76,6 @@ def filtroDaMediaSeparavel2(img, altura_janela, largura_janela):
             img_out[i,j] = img_out[i-1,j] + (buffer[i+right(altura_janela),j] - buffer[i-left(altura_janela)-1,j])/altura_janela
 
     return img_out
-            
 
 def main ():
     # Abre a imagem em escala de cinza.
@@ -97,10 +96,13 @@ def main ():
     img_separavel_2 = filtroDaMediaSeparavel2 (img, ALTURA_JANELA, LARGURA_JANELA)
     print ('Tempo - Filtro Media Separavel 2: %f' % (timeit.default_timer () - start_time))
     
+
     cv2.imshow ('a - entrada', img)
     cv2.imshow ('a - ingenuo', img_ingenuo)
     cv2.imshow ('a - separavel', img_separavel)
     cv2.imshow ('a - separavel_2', img_separavel_2)
+    
+
     cv2.imwrite ('a - ingenuo.png', img_ingenuo*255)
     cv2.imwrite ('a - separavel.png', img_separavel*255)
     cv2.imwrite ('a - separavel_2.png', img_separavel_2*255)
