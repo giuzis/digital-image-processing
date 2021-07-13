@@ -92,16 +92,18 @@ def integral (img):
     return integral
 
 def filtroDaMediaIntegral(img, altura_janela, largura_janela):
-    img_integral = integral(img)
+    rows,cols,channels = img.shape
+    img_integral = np.zeros((rows + 1, cols + 1, channels), dtype = np.float64)
+    img_integral[1:,1:] = integral(img)
     img_out = img.copy()
     # img_out[:,:] = (0,1,1)
     T, B, L, R = limits(img.shape, altura_janela, largura_janela)
     for i in range(T,B):
         for j in range(L,R):
-            img_out[i,j] = ((img_integral 
-                            -img_integral  
-                            -img_integral  
-                            +img_integral)  
+            img_out[i,j] = ((img_integral[i + int(altura_janela - 1)/2, j + int(largura_janela - 1)/2] 
+                            -img_integral[i + int(altura_janela - 1)/2, j - int(largura_janela - 1)/2]   
+                            -img_integral[i - int(altura_janela - 1)/2, j + int(largura_janela - 1)/2]  
+                            +img_integral[i - int(altura_janela - 1)/2, j - int(largura_janela - 1)/2])  
                             /(altura_janela*largura_janela))
     return img_out
 
