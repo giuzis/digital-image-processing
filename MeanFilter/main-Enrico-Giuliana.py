@@ -100,11 +100,6 @@ def filtroDaMediaIntegral(img, altura_janela, largura_janela):
     T, B, L, R = limits(img.shape, altura_janela, largura_janela)
     for i in range(T,B):
         for j in range(L,R):
-            """ print(i,j)
-            print(" ", i + right(altura_janela) + 1, j + right(largura_janela) + 1)
-            print(" ", i - left(altura_janela), j + right(largura_janela) + 1)
-            print(" ", i + right(altura_janela) + 1, j - left(largura_janela))
-            print(" ", i - left(altura_janela), j - left(largura_janela)) """
             img_out[i,j] = ((img_integral[i + right(altura_janela) + 1, j + right(largura_janela) + 1] 
                             -img_integral[i - left(altura_janela), j + right(largura_janela) + 1]   
                             -img_integral[i + right(altura_janela) + 1, j - left(largura_janela)]  
