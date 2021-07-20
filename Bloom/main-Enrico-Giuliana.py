@@ -14,15 +14,36 @@ import cv2
 #===============================================================================
 
 INPUT_IMAGE =  'GT2.bmp'
-THRESHOLD = 0.7
+THRESHOLD = 0.5015
+SIGMA = 1
+TIMES = 12
 
 def brightMask(img):
-    rows, cols, channels = img.shape
-    for i in range(rows):
-        for j in range(cols):
-            if(img[i,j,2] < THRESHOLD):
-                img[i,j,2] = 0
-    return img
+    img2 = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    img2[:,:, 1] = np.where(img2[:,:,1] < THRESHOLD, 0, img2[:,:,1])
+    return cv2.cvtColor(img2, cv2.COLOR_HLS2BGR)
+
+def gaussianBlurMask(mask, times = TIMES):
+    sum_blurred = cv2.GaussianBlur(mask, (0,0), SIGMA)
+    for i in range(1, times):
+        blurred_mask = cv2.GaussianBlur(mask, (0,0), SIGMA*i*2)
+        sum_blurred += blurred_mask 
+    return sum_blurred
+
+""" def gaussianBlurMask(mask, times):
+    blurred_mask = cv2.GaussianBlur(mask, (0,0), SIGMA)
+    sum_blurred = blurred_mask.copy()
+    for i in range(1, times):
+        blurred_mask = cv2.GaussianBlur(blurred_mask, (0,0), SIGMA*i*2)
+        sum_blurred += blurred_mask
+    return sum_blurred """
+
+def GaussianBloomFilter(original, mask, alpha, beta, times = TIMES):
+    blurred_mask = gaussianBlurMask(mask, times)
+    variavel = original*alpha+blurred_mask*beta
+    cv2.imshow("final", variavel)
+    cv2.imshow("original", original)
+    cv2.imshow("blurred_mask", blurred_mask)
 
 def main ():
     # Abre a imagem em escala de cinza.
@@ -31,15 +52,14 @@ def main ():
         print ('Erro abrindo a imagem.\n')
         sys.exit ()
 
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    img = img.astype (np.float32) / 255
 
-    img_out = brightMask(img)
+    mask = brightMask(img)
+    cv2.imshow("mask", mask)
 
-    #start_time = timeit.default_timer ()
-    
-    #print ('Tempo - Filtro Media Ingenuo: %f' % (timeit.default_timer () - start_time))
-    
-    cv2.imwrite ('out.png', img_out)
+    GaussianBloomFilter(img, mask, 0.7, 0.1)
+
+    """ cv2.imwrite ('out.png', img_out*255) """
 
     cv2.waitKey ()
     cv2.destroyAllWindows ()
@@ -48,3 +68,6 @@ if __name__ == '__main__':
     main ()
 
 #===============================================================================
+
+
+
