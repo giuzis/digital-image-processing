@@ -13,10 +13,12 @@ import cv2
 
 #===============================================================================
 
-INPUT_IMAGE =  'GT2.bmp'
+#INPUT_IMAGE =  'GT2.bmp'
+INPUT_IMAGE =  'Wind Waker GC.bmp'
 THRESHOLD = 0.5015
-SIGMA = 1
-TIMES = 12
+SIGMA = 10
+WINDOW = 10
+TIMES = 4
 
 def brightMask(img):
     img2 = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
@@ -27,6 +29,15 @@ def gaussianBlurMask(mask, times = TIMES):
     sum_blurred = cv2.GaussianBlur(mask, (0,0), SIGMA)
     for i in range(1, times):
         blurred_mask = cv2.GaussianBlur(mask, (0,0), SIGMA*i*2)
+        sum_blurred += blurred_mask 
+    return sum_blurred
+
+def blurMask(mask, times = TIMES):
+    sum_blurred = np.zeros(mask.shape)
+    for i in range(1, times+1):
+        blurred_mask = cv2.blur(mask, (WINDOW*i*2,WINDOW*i*2))
+        for j in range(3):
+            blurred_mask = cv2.blur(blurred_mask, (WINDOW*i*2,WINDOW*i*2))
         sum_blurred += blurred_mask 
     return sum_blurred
 
@@ -41,9 +52,15 @@ def gaussianBlurMask(mask, times = TIMES):
 def GaussianBloomFilter(original, mask, alpha, beta, times = TIMES):
     blurred_mask = gaussianBlurMask(mask, times)
     variavel = original*alpha+blurred_mask*beta
-    cv2.imshow("final", variavel)
+    cv2.imshow("gaussian_blurred_mask", blurred_mask)
+    cv2.imshow("gaussian_final", variavel)
+
+def blurBloomFilter(original, mask, alpha, beta, times = TIMES):
+    blurred_mask = blurMask(mask, times)
+    variavel = original*alpha+blurred_mask*beta
     cv2.imshow("original", original)
-    cv2.imshow("blurred_mask", blurred_mask)
+    cv2.imshow("blur_blurred_mask", blurred_mask)
+    cv2.imshow("blur_final", variavel)
 
 def main ():
     # Abre a imagem em escala de cinza.
@@ -57,7 +74,9 @@ def main ():
     mask = brightMask(img)
     cv2.imshow("mask", mask)
 
-    GaussianBloomFilter(img, mask, 0.7, 0.1)
+    GaussianBloomFilter(img, mask, 0.85, 0.15)
+
+    blurBloomFilter(img, mask, 0.85, 0.15)
 
     """ cv2.imwrite ('out.png', img_out*255) """
 
