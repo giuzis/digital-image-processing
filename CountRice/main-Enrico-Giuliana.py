@@ -13,7 +13,7 @@ import cv2
 
 #===============================================================================
 
-INPUT_IMAGE =  'arroz.bmp'
+INPUT_IMAGES =  ['60.bmp', '82.bmp', '114.bmp', '150.bmp', '205.bmp']
 
 # TODO: ajuste estes parâmetros!
 NEGATIVO = False
@@ -88,42 +88,68 @@ respectivamente: topo, esquerda, baixo e direita.'''
 #===============================================================================
 
 def main ():
+    for INPUT_IMAGE in INPUT_IMAGES:
+        # Abre a imagem em escala de cinza.
+        img = cv2.imread (INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
+        
+        if img is None:
+            print ('Erro abrindo a imagem.\n')
+            sys.exit ()
 
-    # Abre a imagem em escala de cinza.
-    img = cv2.imread (INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        print ('Erro abrindo a imagem.\n')
-        sys.exit ()
+        # cv2.imshow ('original', img)
+        # img = cv2.medianBlur(img,3)
 
-    # É uma boa prática manter o shape com 3 valores, independente da imagem ser
-    # colorida ou não. Também já convertemos para float32.
-    img = img.reshape ((img.shape [0], img.shape [1], 1))
-    img = img.astype (np.float32) / 255
+        img_out = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 51, -25)
+        cv2.imshow ('THRESHOLD', img_out)
+        # laplacian = cv2.Laplacian(img,cv2.CV_64F)
+        img = img.reshape ((img.shape [0], img.shape [1], 1))
+        img = img.astype (np.float32) / 255
+        
+        sobelx = cv2.Sobel(img,cv2.CV_64F,1,0,ksize=3)
+        sobely = cv2.Sobel(img,cv2.CV_64F,0,1,ksize=3)
+        integrate = cv2.sqrt(sobelx*sobelx + sobely*sobely)*255
 
-    # Mantém uma cópia colorida para desenhar a saída.
-    img_out = cv2.cvtColor (img, cv2.COLOR_GRAY2BGR)
+        cv2.imshow('dx',sobelx)
+        cv2.imshow('dy',sobely)
+        cv2.imshow('integrate',integrate)
+        cv2.imshow('borderless', (img_out - integrate))
 
-    # Segmenta a imagem.
-    if NEGATIVO:
-        img = 1 - img
-    img = binariza (img, THRESHOLD)
-    cv2.imshow ('01 - binarizada', img)
-    cv2.imwrite ('01 - binarizada.png', img*255)
+        # kernel = np.ones((3, 3), np.uint8)
+        # img_erode = cv2.erode(img_out, kernel)
+        # img_erode = cv2.erode(img_erode, kernel)
+        # img_erode = cv2.erode(img_erode, kernel)
 
-    start_time = timeit.default_timer ()
-    componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
-    n_componentes = len (componentes)
-    print ('Tempo: %f' % (timeit.default_timer () - start_time))
-    print ('%d componentes detectados.' % n_componentes)
+        # img = cv2.GaussianBlur(img, (0,0), 1.1)
+        # É uma boa prática manter o shape com 3 valores, independente da imagem ser
+        # colorida ou não. Também já convertemos para float32.
+        # Mantém uma cópia colorida para desenhar a saída.
+        # img_out = cv2.cvtColor (img, cv2.COLOR_GRAY2BGR)
+        # img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Mostra os objetos encontrados.
-    for c in componentes:
-        cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
+        
+        # # Segmenta a imagem.
+        # if NEGATIVO:
+        #     img = 1 - img
+        # img = binariza (img, THRESHOLD)
+        # cv2.imshow ('01 - binarizada', img)
+        # cv2.imwrite ('01 - binarizada.png', img*255)
 
-    cv2.imshow ('02 - out', img_out)
-    cv2.imwrite ('02 - out.png', img_out*255)
-    cv2.waitKey ()
-    cv2.destroyAllWindows ()
+        # start_time = timeit.default_timer ()
+        # componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
+        # n_componentes = len (componentes)
+        # print ('Tempo: %f' % (timeit.default_timer () - start_time))
+        # print ('%d componentes detectados.' % n_componentes)
+
+        # # Mostra os objetos encontrados.
+        # for c in componentes:
+        #     cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
+
+        # cv2.imshow ('erudida', img_erode)
+        
+        # cv2.imwrite (INPUT_IMAGE.replace('.','_t_e_3.'), img_erode)
+
+        cv2.waitKey ()
+        cv2.destroyAllWindows ()
 
 
 if __name__ == '__main__':
