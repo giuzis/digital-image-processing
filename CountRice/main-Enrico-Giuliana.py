@@ -1,5 +1,6 @@
 #===============================================================================
 # Exemplo: segmentação de uma imagem em escala de cinza.
+# 
 #-------------------------------------------------------------------------------
 # Autor: Bogdan T. Nassu, Enrico Manfron, Giuliana Martins Silva
 # Universidade Tecnológica Federal do Paraná
