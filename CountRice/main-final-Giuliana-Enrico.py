@@ -115,6 +115,7 @@ def countRice (mask , original_img = None, std_div = 19.5, err = 0.11):
                         0.5, #font size
                         (255, 0, 0), #font color
                         1) #font stroke
+                        
         cv2.imshow ('result', img_out)
     
     return total
