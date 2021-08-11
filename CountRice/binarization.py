@@ -16,27 +16,59 @@ import cv2
 
 INPUT_IMAGES =  ['60.bmp', '82.bmp', '114.bmp', '150.bmp', '205.bmp']
 kernel_completo = np.ones((3,3),np.uint8)
-kernel_cruz = np.array([[0,1,0],[0,1,0],[0,1,0]],np.uint8)
+kernel_cruz = np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8)
+kernel_x = np.array([[1,0,1],[0,1,0],[1,0,1]],np.uint8)
+img_limits = lambda i , j , s: (i >= 0 and i < s[0] and j >= 0 and j < s[1]) 
 
 
-def mask_hough(img_c):
-    gradi = gradiente(img_c)
+            
+def canny(img, vis = False):
+    mask = limiarizacao_na_mao(img)
+    dilate_mask = cv2.dilate(mask,kernel_completo,iterations=2)
+    img_e = np.where (dilate_mask > 0.5, (img*255).astype(np.uint8), 0 )
+    suave = cv2.GaussianBlur(img_e, (7, 7), 0)
+    canny1 = cv2.Canny(suave, 0, 120)
+    dilate1 = canny1.copy()
+    # canny2 = cv2.Canny(suave, 70, 200)
+    dilate1 = cv2.dilate(canny1,kernel_cruz,iterations=3)
+    dilate1 = cv2.erode(dilate1,kernel_cruz,iterations=3)
+    # dilate2 = cv2.dilate(canny2,kernel_completo)
+    final = np.where( dilate1 > 125, 0.0, mask)
+    return final
+    if vis : 
+        cv2.imshow("mask",mask)
+        cv2.imshow("canny1",canny1)
+        # cv2.imshow("canny2",canny2)
+        cv2.imshow("dilate1",dilate1)        
+        # cv2.imshow("dilate2",dilate2)
+        cv2.imshow("final",final)
 
-    thresh = limiarizacao_na_mao(gradi,0)
-    circles = cv2.HoughCircles(thresh,cv2.HOUGH_GRADIENT,1,20,
-                            param1=50,param2=30,minRadius=0,maxRadius=0)
-    for i in circles[0,:]:
-        # draw the outer circle
-        cv2.circle(thresh,(i[0],i[1]),i[2],(0,255,0),2)
-        # draw the center of the circle
-        cv2.circle(thresh,(i[0],i[1]),2,(0,0,255),3)
+
+def superborda(img, vis = False):
+    grad = gradiente(img)
+    mask = limiarizacao_na_mao(img)
+    img_lim = np.where(mask < grad, mask, grad)
+    img_lim = (img_lim)**(0.25)
+    try_test = np.where(img_lim > 0.57, 0.0 , (img_lim))
+    fechamento = cv2.dilate(try_test,kernel_completo)
+    fechamento = cv2.erode(fechamento,kernel_completo)
+    abertura = cv2.erode(try_test,kernel_completo)
+    abertura = cv2.dilate(abertura,kernel_completo)
+    # mediana = cv2.medianBlur((try_test*255).astype(np.uint8), 5)
+    canny(try_test,True)
+    if vis:
+        cv2.imshow("grad", grad)
+        cv2.imshow("mask", mask)
+        cv2.imshow("lim", img_lim)
+        cv2.imshow("try_test", try_test)
+        # cv2.imshow("abertura", abertura)
+        # cv2.imshow("fechamento", fechamento)
+        # cv2.imshow("mediana", mediana)
+
 
         
-    cv2.imshow('gradi',gradi)
-    cv2.imshow('thresh',thresh)      
 
 def gradiente(img, vis = False):
-
     img_e = img.copy()    
     sobelx = cv2.Sobel(img_e,cv2.CV_64F,1,0,ksize=3)
     sobely = cv2.Sobel(img_e,cv2.CV_64F,0,1,ksize=3)
@@ -72,11 +104,11 @@ def limiarizacao_na_mao(img,it=1,vis=False):
     abertura = cv2.dilate(img_erode,kernel_completo,iterations=it)
     if vis : 
         cv2.imshow('img_original',img_e)
-        cv2.imshow('img_media',img_media)
-        cv2.imshow('img_diff',img_diff)
-        cv2.imshow('img_norm',img_norm)    
-        cv2.imshow('img_thresh',img_thresh)
-        cv2.imshow('img_erode',img_erode)
+        # cv2.imshow('img_media',img_media)
+        # cv2.imshow('img_diff',img_diff)
+        # cv2.imshow('img_norm',img_norm)    
+        # cv2.imshow('img_thresh',img_thresh)
+        # cv2.imshow('img_erode',img_erode)
         cv2.imshow('abertura',abertura)
     return abertura
     
@@ -87,9 +119,9 @@ def limiar_adap_opencv (img,vis = False):
     img_erode = cv2.erode(img_out,   kernel_completo)
     abertura = cv2.dilate(img_erode, kernel_completo)
     if vis:
-        cv2.imshow('img_out',img_out)
-        cv2.imshow('img_erode',img_erode)
-        cv2.imshow('abertura',abertura)        
+        # cv2.imshow('img_out',img_out)
+        # cv2.imshow('img_erode',img_erode)
+        cv2.imshow('abertura-open',abertura)        
     return abertura
 
 
@@ -101,7 +133,7 @@ def normaliza_adap(img, k_size = 101, bw_size = 51,  vis=False):
     if vis : 
         # cv2.imshow('imagem min', img_min)
         # cv2.imshow('imagem max', img_max)
-        cv2.imshow('imagem norm', img_norm)
+        cv2.imshow('****imagem norm', img_norm)
     
     return img_norm
 
@@ -129,13 +161,13 @@ def main ():
         # limiar_adap_opencv (img,True)
 
         # # Limiarização adaptativa nossa
-        # limiarizacao_na_mao(img,True)
+        # limiarizacao_na_mao(img,1,True)
 
-        # # Gradiente
+        # Gradiente
         # gradiente(img,True)
+        # superborda(img,True)
+        canny(img,True)
 
-        # Hough Test
-        mask_hough(img)
         cv2.waitKey ()
         cv2.destroyAllWindows ()
 
